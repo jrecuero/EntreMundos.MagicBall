@@ -11,24 +11,24 @@ function updateSpeed() {
     speedUpdated = true;
 }
 
-let audioObj = {
-    files: ["skylines.mp3", "imperial.mp3"],
-    len: this.files.length,
-    audios: [],
-    obj: null, 
-    init: function() {
-        for (let i = 0; i < this.len; i++) {
-            var audio = new Audio(this.files[i]);
-            this.audios.push(audio)
-            audio.addEventListener("ended", function() {
-                audio.currentTime = 0;
-                index = (i + 1) % this.len;
-                this.obj = this.audios[index];
-                this.obj.play();
-            });
-        }
-    }
-}
+// let audioObj = {
+//     files: ["skylines.mp3", "imperial.mp3"],
+//     len: this.files.length,
+//     audios: [],
+//     obj: null, 
+//     init: function() {
+//         for (let i = 0; i < this.len; i++) {
+//             var audio = new Audio(this.files[i]);
+//             this.audios.push(audio)
+//             audio.addEventListener("ended", function() {
+//                 audio.currentTime = 0;
+//                 index = (i + 1) % this.len;
+//                 this.obj = this.audios[index];
+//                 this.obj.play();
+//             });
+//         }
+//     }
+// }
 
 let audioOne = new Audio("skylines.mp3");
 let audioTwo = new Audio("imperial.mp3");
@@ -45,12 +45,6 @@ audioTwo.addEventListener("ended", function() {
     audio = audioOne;
     audioOne.play()
 });
-
-// Handling right click mouse
-// window.addEventListener('contextmenu', (ev) => {
-//     ev.preventDefault();
-//     console.log('right clicked')
-// });
 
 document.addEventListener("DOMContentLoaded", function() {
     
@@ -104,6 +98,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    // Handling right click mouse inside the canvas
     canvas.addEventListener('contextmenu', (ev) => {
         ev.preventDefault();
         console.log('canvas right clicked')
