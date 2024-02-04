@@ -1,50 +1,63 @@
 // Adjust speed to the desired value
-let speed = 2;
-let oldSpeed = speed;
-let speedUpdated = false;
+let speedObj = {
+    now: 2,
+    old: 2,
+    ratio: 1,
+    updated: false,
+    init: function(speed) {
+        this.now = speed;
+        this.old = speed;
+        this.setRatio()
+    },
+    setRatio: function() {
+        this.ratio = this.now / this.old;
+    },
+    update: function(speed) {
+        this.old = this.now;
+        this.now = speed;
+        this.updated = true;
+        this.setRatio();
+        },
+}
 
 const ballRatio = 50
 
 function updateSpeed() {
-    oldSpeed = speed;
-    speed = parseFloat(document.getElementById("speedInput").value);
-    speedUpdated = true;
+    speedObj.update(parseFloat(document.getElementById("speedInput").value));
 }
 
-// let audioObj = {
-//     files: ["skylines.mp3", "imperial.mp3"],
-//     len: this.files.length,
-//     audios: [],
-//     obj: null, 
-//     init: function() {
-//         for (let i = 0; i < this.len; i++) {
-//             var audio = new Audio(this.files[i]);
-//             this.audios.push(audio)
-//             audio.addEventListener("ended", function() {
-//                 audio.currentTime = 0;
-//                 index = (i + 1) % this.len;
-//                 this.obj = this.audios[index];
-//                 this.obj.play();
-//             });
-//         }
-//     }
-// }
-
-let audioOne = new Audio("skylines.mp3");
-let audioTwo = new Audio("imperial.mp3");
-var audio = audioOne;
-
-audioOne.addEventListener("ended", function() {
-    audioOne.currentTime = 0;
-    audio = audioTwo;
-    audioTwo.play()
-});
-
-audioTwo.addEventListener("ended", function() {
-    audioTwo.currentTime = 0;
-    audio = audioOne;
-    audioOne.play()
-});
+let audioObj = {
+    files: ["skylines.mp3", "imperial.mp3"],
+    len: 0,
+    audios: [],
+    obj: null, 
+    init: function() {
+        this.len = this.files.length;
+        for (let i = 0; i < this.len; i++) {
+            var audio = new Audio(this.files[i]);
+            this.audios.push(audio)
+            let thisOuter = this;
+            audio.addEventListener("ended", function() {
+                this.currentTime = 0;
+                let index = (i + 1) % thisOuter.len;
+                thisOuter.obj = thisOuter.audios[index];
+                thisOuter.obj.play();
+            });
+        }
+        this.obj = this.audios[0];
+    },
+    play: function() {
+        if (this.obj != null) {
+            this.obj.play();
+        }
+    },
+    pause: function() {
+        if (this.obj != null) {
+            this.obj.pause();
+        }
+    },
+}
+audioObj.init();
 
 document.addEventListener("DOMContentLoaded", function() {
     
@@ -86,15 +99,17 @@ document.addEventListener("DOMContentLoaded", function() {
     // Update ball position when mouse clicked
     canvas.addEventListener("click", function(event) {
         if (!isMoving) {
-            audio.play();
+            audioObj.obj.play();
             const rect = canvas.getBoundingClientRect();
             console.debug(rect)
             targetX = event.clientX - rect.left;
             targetY = event.clientY - rect.top;
             moveBall();            
         } else {
-            audio.pause();
+            audioObj.obj.pause();
             isMoving = false;
+            sphereColor = (sphereColor + 1) % 5;
+            initSphere();
         }
     });
 
@@ -111,49 +126,102 @@ document.addEventListener("DOMContentLoaded", function() {
         const dy = targetY - ballY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        let vx = (dx / distance) * speed;
-        let vy = (dy / distance) * speed;    
+        let vx = (dx / distance) * speedObj.now;
+        let vy = (dy / distance) * speedObj.now;    
 
         function update() {
 
-            if (speedUpdated) {
-                vx = (vx * speed) / oldSpeed;
-                vy = (vy * speed) / oldSpeed;
-                speedUpdated = false;
+            if (speedObj.updated) {
+                // vx = (vx * speedObj.now) / speedObj.old;
+                vx = vx * speedObj.ratio;
+                // vy = (vy * speedObj.now) / speedObj.old;
+                vy = vy * speedObj.ratio;
+                speedObj.updated = false;
             }
 
-            // if (distance > speed) {
             if (isMoving) {
                 const rect = canvas.getBoundingClientRect();
 
-                if (((ballY + ballRatio) >= rect.height) || ((ballY - ballRatio) <= 0)) {
+                // if (((ballY + ballRatio) >= rect.height) || ((ballY - ballRatio) <= 0)) {
+                //     vy *= -1;
+                // }
+                // if (((ballX + ballRatio) >= rect.width) || ((ballX - ballRatio) <= 0)) {
+                //     vx *= -1;
+                // }
+                if (((ballY + sphereSize - sphereMargin) >= rect.height) || ((ballY + sphereMargin) <= 0)) {
                     vy *= -1;
-                    // isMoving = false;
                 }
-                if (((ballX + ballRatio) >= rect.width) || ((ballX - ballRatio) <= 0)) {
+                if (((ballX + sphereSize - sphereMargin) >= rect.width) || ((ballX + sphereMargin) <= 0)) {
                     vx *= -1;
-                    // isMoving = false;
                 }
                 ballY += vy;
                 ballX += vx;
 
                 requestAnimationFrame(update);
-            // } else {
-            //     ballX = targetX;
-            //     ballY = targetY;
-            //     isMoving = false;                
             }
-            // }
             draw();
         }
 
         update();
     }
 
+    var Point = {
+        x: 0,
+        y: 0,
+        init: function(x, y) {
+            this.x = x;
+            this.y = y;
+            return this;
+        },
+    }
+
+    let counter = 0;
+    let index = 0;
+
+    const sphere = new Image();
+    sphere.onload = function() {
+        ctx.drawImage(sphere, spherePoints[index].x, spherePoints[index].y, sphereSize, sphereSize, ballX, ballY, sphereSize, sphereSize);
+    }
+    sphere.src = "spheres.png";
+    const sphereSize = 105;
+    const sphereOrigin = 40;
+    const sphereMargin = 15;
+    let sphereColor = 0;
+    let spherePoints = [];
+
+    function initSphere() {
+        spherePoints = [
+            Object.create(Point).init(sphereOrigin, sphereOrigin + sphereSize*sphereColor), 
+            Object.create(Point).init(sphereOrigin + sphereSize, sphereOrigin + sphereSize*sphereColor),
+            Object.create(Point).init(sphereOrigin + sphereSize*2, sphereOrigin + sphereSize*sphereColor),
+            Object.create(Point).init(sphereOrigin + sphereSize*3, sphereOrigin + sphereSize*sphereColor),
+            Object.create(Point).init(sphereOrigin + sphereSize*4, sphereOrigin + sphereSize*sphereColor)
+        ];
+    }
+    initSphere();
+
+    function drawSphere() {
+        // var size = 105;
+        // var start = 40 + size*4;
+        // var ximages = 1;
+        // var yimages = 1;
+        // ctx.drawImage(sphere, start, start, size*ximages, size+yimages, 0, 0, size*ximages, size*yimages);
+        if (isMoving) {
+            counter++;
+            if (counter > (100 / speedObj.now)) {
+                counter = 0;
+                index = (index + 1) % 5;
+            }
+        }
+        // ctx.fillRect(ballX, ballY, sphereSize, sphereSize);
+        ctx.drawImage(sphere, spherePoints[index].x, spherePoints[index].y, sphereSize, sphereSize, ballX, ballY, sphereSize, sphereSize);
+    }
+
     // Main draw function
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawBall();
+        // drawBall();
+        drawSphere();
     }
 
     // Initial draw
